@@ -1,0 +1,78 @@
+// Carregando CSV
+LOAD CSV WITH HEADERS FROM "file:///CreditTitleTable.csv" AS imdbf
+FIELDTERMINATOR ','
+
+CREATE (f:Filme4 {id:imdbf.id, nome:imdbf.Nome,
+personagem:imdbf.Personagem, papel: imdbf.Papel, 
+titulo:imdbf.Titulo, descricao:imdbf.Descricao, ano:imdbf.Ano, tipo:imdbf.Tipo,
+genero:imdbf.Genero, paisesfilmados:imdbf.PaisesFilmados,  temporadas:imdbf.Temporadas,  pontuacao:imdbf.Pontuacao, votacao:imdbf.Votacao})
+
+// Consultando atores que possuem M no nome
+MATCH (f:Filme4)
+WHERE f.nome =~ '(?i).*m.*'
+RETURN f.titulo, f.nome
+
+// Consultando por todas as Debbis na base
+MATCH (f:Filme4)
+WHERE f.nome =~ '(?i).*Debbi.*'
+RETURN f.titulo, f.nome
+
+// Consultando a contagem de vezes que Robert (qualquer um na base) trabalhou em filmes
+MATCH (f:Filme4)
+WHERE f.nome =~ '(?i).*Robert.*'
+RETURN f.nome, COUNT(f) AS Contagem
+ORDER BY Contagem DESC
+
+// Consulta de todos os atores e sua contagem de participação
+MATCH (f:Filme4)
+WHERE f.nome =~ '(?i).*.*'
+RETURN f.nome, COUNT(f) AS Contagem
+ORDER BY Contagem DESC
+
+// i) a rede de relacionamentos no nível mais próximo e no segundo nível.
+// Consultando os filmes pelo maior numero de votos
+MATCH(f:Filme4)
+WHERE f.votacao IS NOT NULL
+RETURN f.titulo, MAX(f.votacao) AS Maior
+ORDER BY Maior DESC
+
+// ii) As recomendações a partir do 2º nível (amigo do amigo, etc.)
+// Consultando todos os filmes em que Robert De Niro trabalhou
+MATCH (f:Filme4)
+WHERE f.id =~ '(?i).*.*'
+    and f.nome =~ '(?i).*Robert De Niro.*'
+RETURN f.id, f.nome, f.titulo
+
+// Quantidade de filmes feitos por quem participou do filme com id tm84618 (Taxi Driver)
+MATCH (f:Filme4)
+WHERE f.id =~ '(?i).*tm84618.*'
+AND f.nome =~ '(?i).*.*'
+    AND f.titulo
+RETURN f.nome , COUNT(*) AS Qtas_Parcerias
+ORDER BY COUNT(*) DESC
+
+// Filmes no qual cada ator participou e quantos filmes foram no total
+MATCH (f:Filme4)
+WHERE f.titulo =~ '(?i).*.*'
+  AND f.nome =~ '(?i).*.*'
+  AND f.id =~ '(?i).*.*'
+RETURN f.nome, COUNT(*) AS Qtas_Filmes, COLLECT(f.titulo) AS Filmes_Participados
+ORDER BY COUNT(*) DESC
+
+
+// iii) A força do relacionamento para chegar a um determinado nó (pessoa ou produto)
+// Consultando os filmes de um ator especifico (Robert De Niro)
+MATCH (f:Filme4)
+WHERE f.nome =~'(?i).*Robert De Niro.*'
+RETURN f.titulo, f.id
+
+
+// Consultando o(s) diretor(es) de um filme, pelo id do filme (assim podemos saber quem dirigiu os filmes feitos por um ator especifico (Robert De Niro)
+MATCH (f:Filme4)
+WHERE f.id IN ['tm84618', 'tm180542', 'tm155787', 'tm145608', 'tm311902', 'tm244149', 'tm844497']
+    AND f.papel =~'(?i).*DIRECTOR.*'
+RETURN DISTINCT f.titulo, f.nome, f.papel
+
+
+
+ 
